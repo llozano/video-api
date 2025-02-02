@@ -8,9 +8,12 @@ CREATE TABLE IF NOT EXISTS channel_result (
 	search_etag VARCHAR(50) NOT NULL,
 	items JSON NOT NULL,
 	created_on TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-	updated_on TIMESTAMP,
+	updated_on TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 	UNIQUE(channel_id)
 );
+
+CREATE INDEX idx_updated_on_desc ON channel_result (updated_on DESC);
+
 
 INSERT INTO channel_result(channel_id, search_etag, items) VALUES (
 	'UCYzPXprvl5Y-Sf0g4vX-m6g',
