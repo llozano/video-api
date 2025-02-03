@@ -38,7 +38,8 @@ public class VideoService {
 
 	@Autowired
 	private YouTubeService youTubeService;
-
+	
+	
 	@Async
 	@Cacheable(value = "recentVideos", key = "#apiRequest.channelId")
 	public CompletableFuture<Optional<ChannelResultDTO>> search(ApiRequest apiRequest) {
