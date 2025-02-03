@@ -58,6 +58,10 @@ public class VideoApiController {
 		httpHeaders.add("X-Request-ID", apiRequest.getReferenceId().toString());
 		httpHeaders.add("ETag", dto.getETag());
 
+		if (eTag.isPresent() && dto.getETag().equals(eTag.get())) {
+			return ResponseEntity.status(HttpStatus.NOT_MODIFIED).headers(httpHeaders).build();
+		}
+
 		return ResponseEntity.ok().headers(httpHeaders).cacheControl(CacheControl.maxAge(duration, TimeUnit.MINUTES))
 				.body(dto);
 	}

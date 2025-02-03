@@ -9,6 +9,7 @@ import java.util.concurrent.CompletionException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.annotation.Async;
@@ -38,10 +39,11 @@ public class VideoService {
 
 	@Autowired
 	private YouTubeService youTubeService;
-	
-	
+
 	@Async
-	@Cacheable(value = "recentVideos", key = "#apiRequest.channelId")
+	@Caching(cacheable = {
+			@Cacheable(value = "recentVideosByEtag", condition = "#apiRequest.eTag.isPresent()", key = "#apiRequest.eTag.get()"),
+			@Cacheable(value = "recentVideos", key = "#apiRequest.channelId") })
 	public CompletableFuture<Optional<ChannelResultDTO>> search(ApiRequest apiRequest) {
 		Optional<ChannelResult> channelResult = Optional.empty();
 		Optional<ChannelResultDTO> dto = Optional.empty();
@@ -92,7 +94,7 @@ public class VideoService {
 					final ChannelResult toSave = ChannelResult.builder().channelId(apiRequest.getChannelId())
 							.searchETag(searchResponse.getEtag()).items(searchResponse.getItems()).createdOn(now)
 							.updatedOn(now).build();
-					
+
 					log.info("Inserting new result: " + toSave.getChannelId());
 					channelResultRepository.save(toSave);
 				}
