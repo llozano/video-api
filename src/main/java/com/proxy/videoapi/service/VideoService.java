@@ -100,21 +100,23 @@ public class VideoService {
 
 		} catch (RestClientException restEx) {
 			log.error(String.format("Error fetching for request. Reference: %s", apiRequest.getReferenceId()), restEx);
+			// [**] if response is ready, serve it instead of responding with exception
 			if (dto.isEmpty()) {
 				throw new ExternalApiException(restEx.getCause(), apiRequest);
 			}
 		} catch (CompletionException compEx) {
 			log.error(String.format("Error executing request. Reference: %s", apiRequest.getReferenceId()), compEx);
+			// [**]
 			if (dto.isEmpty()) {
 				throw new InternalApiException(compEx.getCause(), apiRequest);
 			}
 
 		} catch (Exception ex) {
 			log.error(String.format("Error ocurred. Reference: %s", apiRequest.getReferenceId()), ex);
+			// [**]
 			if (dto.isEmpty()) {
 				throw new InternalApiException(ex.getCause(), apiRequest);
 			}
-
 		}
 
 		return CompletableFuture.completedFuture(dto);

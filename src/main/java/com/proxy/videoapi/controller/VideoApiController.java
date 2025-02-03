@@ -1,8 +1,11 @@
 package com.proxy.videoapi.controller;
 
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.CacheControl;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -25,6 +28,9 @@ import lombok.extern.slf4j.Slf4j;
 @RequestMapping("/{version}/videos")
 public class VideoApiController {
 
+	@Value("${videoapi.cache.ttl}")
+	private Long duration;
+
 	@Autowired
 	VideoService videoService;
 
@@ -40,16 +46,19 @@ public class VideoApiController {
 			throw new ResponseException(apiRequest, HttpStatus.BAD_REQUEST);
 		}
 
-		final Optional<ChannelResultDTO> dto = videoService.search(apiRequest).join();
+		final Optional<ChannelResultDTO> result = videoService.search(apiRequest).join();
 
-		if (dto.isEmpty()) {
+		if (result.isEmpty()) {
 			throw new ResponseException(apiRequest, HttpStatus.NOT_FOUND);
 		}
 
+		final ChannelResultDTO dto = result.get();
 		// Prepare response headers
 		final HttpHeaders httpHeaders = new HttpHeaders();
-		httpHeaders.add("referenceId", apiRequest.getReferenceId().toString());
+		httpHeaders.add("X-Request-ID", apiRequest.getReferenceId().toString());
+		httpHeaders.add("ETag", dto.getETag());
 
-		return ResponseEntity.ok().headers(httpHeaders).body(dto);
+		return ResponseEntity.ok().headers(httpHeaders).cacheControl(CacheControl.maxAge(duration, TimeUnit.MINUTES))
+				.body(dto);
 	}
 }

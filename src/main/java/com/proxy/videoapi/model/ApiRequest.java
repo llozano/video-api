@@ -13,7 +13,7 @@ import lombok.ToString;
 @EqualsAndHashCode
 public class ApiRequest implements Serializable {
 	private static final long serialVersionUID = 1L;
-	
+
 	private String channelId;
 	private Optional<String> eTag;
 	private UUID referenceId;
