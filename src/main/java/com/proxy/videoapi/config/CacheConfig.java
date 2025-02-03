@@ -20,7 +20,7 @@ public class CacheConfig {
 
 	@Bean
 	public CacheManager cacheManager() {
-		CaffeineCacheManager cacheManager = new CaffeineCacheManager("recentVideos");
+		CaffeineCacheManager cacheManager = new CaffeineCacheManager("recentVideos", "recentVideosByEtag");
 		cacheManager.setCaffeine(caffeineCacheBuilder());
 		cacheManager.setAsyncCacheMode(true);
 
