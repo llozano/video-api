@@ -1,5 +1,7 @@
 package com.proxy.videoapi.converter;
 
+import java.util.List;
+
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.proxy.videoapi.youtube.model.SearchResult;
@@ -10,26 +12,26 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Converter(autoApply = true)
-public class SearchResultConverter implements AttributeConverter<SearchResult, String> {
+public class SearchResultConverter implements AttributeConverter<List<SearchResult>, String> {
 
 	private static final ObjectMapper objectMapper = new ObjectMapper();
 
 	@Override
-	public String convertToDatabaseColumn(SearchResult attribute) {
+	public String convertToDatabaseColumn(List<SearchResult> searchResults) {
 		try {
-			return objectMapper.writeValueAsString(attribute);
+			return objectMapper.writeValueAsString(searchResults);
 		} catch (JsonProcessingException ex) {
-			log.error(String.format("Error converting searchResult to ", attribute.getId()), ex);
+			log.error("Error converting searchResults to json", ex);
 		}
-		return "{}";
+		return "[]";
 	}
 
 	@Override
-	public SearchResult convertToEntityAttribute(String dbData) {
+	public List<SearchResult> convertToEntityAttribute(String dbData) {
 		try {
-			return objectMapper.readValue(dbData, SearchResult.class);
+			return objectMapper.readerForListOf(SearchResult.class).readValue(dbData);
 		} catch (JsonProcessingException ex) {
-			log.error("Error converting dbData to SearchResul ", ex);
+			log.error("Error converting dbData to SearchResult", ex);
 		}
 		return null;
 	}

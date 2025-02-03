@@ -1,6 +1,7 @@
 package com.proxy.videoapi.youtube.service;
 
 import java.net.URI;
+import java.util.Optional;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
@@ -9,8 +10,11 @@ import java.util.concurrent.Executor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 
@@ -28,7 +32,7 @@ public class YouTubeService {
 
 	@Autowired
 	@Qualifier("threadPollTaskExecutor")
-	private Executor executor;
+	private Executor restExecutor;
 
 	@Value("${youtube.api.url}")
 	private String youTubeUrl;
@@ -39,10 +43,11 @@ public class YouTubeService {
 	@Value("${youtube.api.search.part}")
 	private String part;
 
-	public SearchResponse featchVideosForChannel(String channelId) throws CompletionException, CancellationException {
+	public CompletableFuture<ResponseEntity<SearchResponse>> featchVideosForChannel(String channelId,
+			Optional<String> eTag) throws CompletionException, CancellationException {
 		final URI uri = buildSearchUri(channelId);
 
-		return executeSearch(uri).join();
+		return executeSearch(uri, eTag);
 	}
 
 	private URI buildSearchUri(String channelId) throws RuntimeException {
@@ -50,18 +55,19 @@ public class YouTubeService {
 				.queryParam("part", part).queryParam("channelId", channelId).build().encode().toUri();
 	}
 
-	private CompletableFuture<SearchResponse> executeSearch(URI uri) {
+	private CompletableFuture<ResponseEntity<SearchResponse>> executeSearch(URI uri, Optional<String> eTag) {
 		return CompletableFuture.supplyAsync(() -> {
-			try {
-				return restTemplate.getForObject(uri, SearchResponse.class);
-			} catch (RestClientException rex) {
-				log.error("Error HTTP client", rex);
-				throw new CompletionException(rex.getCause());
-			} catch (Exception ex) {
-				log.error("Error", ex);
-				throw new RuntimeException(ex.getCause());
+
+			final HttpHeaders httpHeaders = new HttpHeaders();
+			if (eTag.isPresent()) {
+				httpHeaders.set("If-None-Match", eTag.get());
 			}
-		}, executor);
+
+			final HttpEntity<String> httpEntity = new HttpEntity<>(httpHeaders);
+
+			return restTemplate.exchange(uri, HttpMethod.GET, httpEntity, SearchResponse.class);
+
+		}, restExecutor);
 	}
 
 }

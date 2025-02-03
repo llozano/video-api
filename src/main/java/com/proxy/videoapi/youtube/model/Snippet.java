@@ -1,7 +1,7 @@
 package com.proxy.videoapi.youtube.model;
 
 import java.io.Serializable;
-import java.util.List;
+import java.util.Map;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -31,7 +31,7 @@ public class Snippet implements Serializable {
 
 	private String description;
 
-	private List<Thumbnail> thumbnails;
+	private Map<String, Thumbnail> thumbnails;
 
 	private String channeltitle;
 
