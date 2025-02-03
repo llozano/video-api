@@ -1,6 +1,6 @@
 package com.proxy.videoapi.repository;
 
-import java.time.LocalDate;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
@@ -14,11 +14,11 @@ public interface ChannelResultRepository extends JpaRepository<ChannelResult, Lo
 
 	Optional<ChannelResult> findByChannelId(String channelId);
 
-	@Query(value = "SELECT cr FROM ChannelResult cr"
-			+ " WHERE cr.updatedOn >= :last30min"
-			+ " ORDER BY e.updatedOn DESC"
+	@Query(value = "SELECT cr.* FROM video.channel_result cr"
+			+ " WHERE cr.updated_on >= :lastXmins"
+			+ " ORDER BY cr.updated_on DESC"
 			+ " LIMIT :limit", nativeQuery = true)
-	List<ChannelResult> latestChannelResultsSortedDesc(@Param("last30min") LocalDate last30min,
+	List<ChannelResult> latestChannelResultsSortedDesc(@Param("lastXmins") Instant lastXmins,
 			@Param("limit") Integer limit);
 
 }
