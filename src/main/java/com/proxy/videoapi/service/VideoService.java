@@ -40,7 +40,7 @@ public class VideoService {
 	private YouTubeService youTubeService;
 
 	@Async
-	@Cacheable(value = "recentVideos", key = "#apiRequest.channelId")
+	@Cacheable(value = "recentVideos", key = "#apiRequest.channelId", sync = true)
 	public CompletableFuture<Optional<ChannelResultDTO>> search(ApiRequest apiRequest) {
 		Optional<ChannelResult> channelResult = Optional.empty();
 		Optional<ChannelResultDTO> dto = Optional.empty();
