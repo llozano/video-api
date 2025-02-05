@@ -38,7 +38,7 @@ public class VideoApiController {
 	public ResponseEntity<?> search(@PathVariable final String version, @PathVariable final String channelId,
 			@RequestHeader(name = "If-None-Match", required = false) final Optional<String> eTag) {
 
-		final ApiRequest apiRequest = new ApiRequest(channelId, eTag);
+		final ApiRequest apiRequest = new ApiRequest(version, channelId, eTag);
 
 		log.info("Attending API request: " + apiRequest);
 
