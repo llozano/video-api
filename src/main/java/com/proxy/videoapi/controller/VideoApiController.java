@@ -1,6 +1,7 @@
 package com.proxy.videoapi.controller;
 
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,7 +16,10 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.client.RestClientException;
 
+import com.proxy.videoapi.exception.ExternalApiException;
+import com.proxy.videoapi.exception.InternalApiException;
 import com.proxy.videoapi.exception.ResponseException;
 import com.proxy.videoapi.model.ApiRequest;
 import com.proxy.videoapi.model.ChannelResultDTO;
@@ -35,7 +39,8 @@ public class VideoApiController {
 	VideoService videoService;
 
 	@GetMapping(path = "/{channelId}", produces = MediaType.APPLICATION_JSON_VALUE)
-	public ResponseEntity<?> search(@PathVariable final String version, @PathVariable final String channelId,
+	public CompletableFuture<ResponseEntity<?>> search(@PathVariable final String version,
+			@PathVariable final String channelId,
 			@RequestHeader(name = "If-None-Match", required = false) final Optional<String> eTag) {
 
 		final ApiRequest apiRequest = new ApiRequest(version, channelId, eTag);
@@ -46,22 +51,34 @@ public class VideoApiController {
 			throw new ResponseException(apiRequest, HttpStatus.BAD_REQUEST);
 		}
 
-		final Optional<ChannelResultDTO> result = videoService.search(apiRequest).join();
+		return videoService.search(apiRequest).thenApply((result) -> {
+			if (result.isEmpty()) {
+				log.warn("Request resolved as NOT FOUND");
+				return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+			}
 
-		if (result.isEmpty()) {
-			throw new ResponseException(apiRequest, HttpStatus.NOT_FOUND);
-		}
+			final ChannelResultDTO dto = result.get();
+			// Prepare response headers
+			final HttpHeaders httpHeaders = new HttpHeaders();
+			httpHeaders.add("X-Request-ID", apiRequest.getReferenceId().toString());
 
-		final ChannelResultDTO dto = result.get();
-		// Prepare response headers
-		final HttpHeaders httpHeaders = new HttpHeaders();
-		httpHeaders.add("X-Request-ID", apiRequest.getReferenceId().toString());
+			if (eTag.isPresent() && dto.getETag().equals(eTag.get())) {
+				return ResponseEntity.status(HttpStatus.NOT_MODIFIED).headers(httpHeaders).build();
+			}
 
-		if (eTag.isPresent() && dto.getETag().equals(eTag.get())) {
-			return ResponseEntity.status(HttpStatus.NOT_MODIFIED).headers(httpHeaders).build();
-		}
+			return ResponseEntity.ok().eTag(dto.getETag()).headers(httpHeaders)
+					.cacheControl(CacheControl.maxAge(duration, TimeUnit.MINUTES)).body(dto);
+		}).exceptionally(ex -> {
+			Throwable cause = ex.getCause();
+			if (cause instanceof RestClientException) {
+				throw new ExternalApiException(ex.getCause(), apiRequest);
+			}
 
-		return ResponseEntity.ok().eTag(dto.getETag()).headers(httpHeaders)
-				.cacheControl(CacheControl.maxAge(duration, TimeUnit.MINUTES)).body(dto);
+			if (cause instanceof ResponseException) {
+				throw new ResponseException(apiRequest, ((ResponseException) cause).getHttpStatus());
+			}
+
+			throw new InternalApiException(cause, apiRequest);
+		});
 	}
 }
